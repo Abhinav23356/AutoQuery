@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+dist/
+.pytest_cache/
+
+# Local credentials and provider connection strings
+.env.*
+!.env.example
+
+# Local resume files
+/Abhinav Resume LaTeX/
