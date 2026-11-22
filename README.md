@@ -1,6 +1,6 @@
 # AutoQuery
 
-Data Detective is a full-stack analytics chat. React/Vite provides a searchable `⌘K` palette, tabbed chart/data/SQL results, and expandable timed tool traces. FastAPI stores conversations and uploads, AutoGen orchestrates Gemini, and an MCP chart server builds Recharts configurations.
+AutoQuery is a full-stack analytics chat app. React/Vite provides a searchable `⌘K` palette, tabbed chart/data/SQL results, and expandable timed tool traces. FastAPI stores conversations and uploads, AutoGen orchestrates Gemini, and an MCP chart server builds Recharts configurations.
 
 Every investigation must have its own uploaded CSV before analysis. The agent receives a query tool for that investigation's CSV and the chart tool; it has no PostgreSQL analytics tool and cannot use another investigation's data. Chats without an upload receive an instruction to upload a CSV instead of falling back to sample data or general knowledge.
 
