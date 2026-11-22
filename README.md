@@ -1,4 +1,4 @@
-# Data Detective
+# AutoQuery
 
 Data Detective is a full-stack analytics chat. React/Vite provides a searchable `⌘K` palette, tabbed chart/data/SQL results, and expandable timed tool traces. FastAPI stores conversations and uploads, AutoGen orchestrates Gemini, and an MCP chart server builds Recharts configurations.
 
