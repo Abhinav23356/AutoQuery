@@ -1,5 +1,9 @@
 # AutoQuery
-![Alt text](https://github.com/user-attachments/assets/d42652b4-809f-4b79-b64a-8ee3b5b214e7)
+
+
+https://github.com/user-attachments/assets/9798c96c-9eab-4a52-bc68-080906fda949
+
+
 
 
 AutoQuery is a full-stack analytics chat app. React/Vite provides a searchable `⌘K` palette, tabbed chart/data/SQL results, and expandable timed tool traces. FastAPI stores conversations and uploads, AutoGen orchestrates Gemini, and an MCP chart server builds Recharts configurations.
