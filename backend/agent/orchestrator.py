@@ -10,11 +10,15 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
+
+# --- Agent identity and operating instructions ---
 log = logging.getLogger("detective.agent")
 
 SYSTEM = """You are Data Detective, a closed-world analytics agent. Answer factual questions only with evidence from this conversation's uploaded dataset or verified prior conversation context. Never use pretrained general knowledge, web knowledge, guesses, or another chat's data. Query only this chat's uploaded_data table with query_uploaded_dataset; its columns are TEXT, so cast numeric/date values as needed. If the requested fact is absent from this dataset, say it is not available. For vague questions, clarify the metric or timeframe when needed; otherwise state assumptions and investigate the data. SQL must be read-only and use only the listed table. Verify findings by checking relevant values, date coverage, nulls, calculations, and chart data. Distinguish observed patterns from proven causes. For charts comparing categories over time, use one row per time period and a separate numeric column for every category, then pass all series to the chart tool. Give concise Markdown with concrete values, dates, and caveats. Never reveal private reasoning."""
 
 
+
+# --- Convert MCP JSON schemas into Python tool signatures ---
 def _python_type(schema: dict[str, Any]) -> Any:
     """Convert the common JSON Schema shapes used by our MCP servers to Python types."""
     if "anyOf" in schema:
@@ -41,6 +45,8 @@ def _python_type(schema: dict[str, Any]) -> Any:
     return Any
 
 
+
+# --- Adapt MCP tools for AutoGen ---
 def _make_autogen_tool(spec: dict[str, Any], invoke):
     """Expose an MCP JSON-schema tool as an AutoGen FunctionTool."""
     function = spec["function"]
@@ -75,12 +81,15 @@ def _make_autogen_tool(spec: dict[str, Any], invoke):
     return FunctionTool(call_tool, name=name, description=description)
 
 
+
+# --- Gemini model client and analytics agent ---
 class Agent:
     """Creates a per-request AutoGen AssistantAgent backed by the Gemini API."""
 
     def __init__(self):
         self.model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
+    # --- Configure the Gemini OpenAI-compatible client ---
     def _model_client(self):
         # Gemini exposes an OpenAI-compatible endpoint. AutoGen requires explicit
         # model capabilities for non-OpenAI model IDs, including tool support.
@@ -108,6 +117,7 @@ class Agent:
         self._preserve_gemini_tool_signatures(client)
         return client
 
+    # --- Preserve Gemini metadata across tool-call turns ---
     @staticmethod
     def _preserve_gemini_tool_signatures(client):
         signatures: dict[str, str] = {}
@@ -163,6 +173,7 @@ class Agent:
 
         completions.create = create_with_gemini_signatures
 
+    # --- Run an analysis and record tool activity ---
     async def run(self, question, history, connections, on_event, uploaded_dataset=None):
         if uploaded_dataset is None:
             raise ValueError("Upload a CSV dataset to this investigation before asking data questions.")
@@ -214,6 +225,8 @@ class Agent:
             await client.close()
 
 
+
+# --- Build concise execution trace summaries ---
 def _summary(result):
     if isinstance(result, dict):
         if "rows" in result:

@@ -1,6 +1,10 @@
 """Pure SQL allowlist checks shared with tests; DB read-only grants remain the hard boundary."""
 import os, re
+
+# --- Allowed database tables ---
 ALLOWED=set(os.getenv("ALLOWED_TABLES","customers,products,orders,order_items").split(","))
+
+# --- Reject unsafe or unauthorized SQL ---
 def validate_query(query: str) -> str:
     q=query.strip().rstrip(";").strip()
     if not q or len(q)>12000: raise ValueError("Query is empty or exceeds 12,000 characters")

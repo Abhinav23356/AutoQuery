@@ -1,6 +1,8 @@
 """Pure chart payload validation used by the chart MCP server."""
 from typing import Any
 
+
+# --- Validate chart data and build the UI payload ---
 def chart_config(kind:str,data:list[dict[str,Any]],title:str,x:str,y:str,series:list[str]|None=None)->dict:
     if not isinstance(data,list) or not data: raise ValueError("Chart data must contain at least one row")
     if len(data)>500: raise ValueError("Chart data is limited to 500 rows")

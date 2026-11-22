@@ -6,6 +6,8 @@ from backend.agent.chart_guard import chart_config
 generate_bar_chart=lambda data,title,x,y:chart_config("bar",data,title,x,y)
 
 
+
+# --- SQL allowlist regression checks ---
 class SqlGuardTests(unittest.TestCase):
     def test_select_from_allowed_relation(self):
         self.assertEqual(validate_query("SELECT region, COUNT(*) FROM customers GROUP BY region"), "SELECT region, COUNT(*) FROM customers GROUP BY region")
@@ -16,6 +18,8 @@ class SqlGuardTests(unittest.TestCase):
         for sql in ("SELECT * FROM secrets", "SELECT * FROM private.customers"):
             with self.assertRaises(ValueError): validate_query(sql)
 
+
+# --- Chart payload validation checks ---
 class ChartGuardTests(unittest.TestCase):
     def test_returns_recharts_configuration(self):
         chart=generate_bar_chart([{"month":"Jan","revenue":12}],"Revenue","month","revenue")

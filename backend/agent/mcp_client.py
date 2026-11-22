@@ -5,7 +5,11 @@ from pathlib import Path
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+
+# --- Locate MCP server scripts ---
 ROOT=Path(__file__).resolve().parents[1]
+
+# --- Manage MCP subprocess and session lifecycles ---
 class MCPConnections:
     def __init__(self): self.stack=AsyncExitStack(); self.sessions={}
     async def __aenter__(self):
@@ -21,6 +25,7 @@ class MCPConnections:
             await self.stack.aclose()
             raise
     async def __aexit__(self,*args): await self.stack.aclose()
+    # --- Discover available MCP tools ---
     async def tools(self):
         found=[]
         for server,session in self.sessions.items():
@@ -28,6 +33,7 @@ class MCPConnections:
             for tool in response.tools:
                 found.append({"type":"function","function":{"name":tool.name,"description":f"[{server}] {tool.description or ''}","parameters":tool.inputSchema}})
         return found
+    # --- Invoke a discovered MCP tool ---
     async def call(self,name,args):
         for server,session in self.sessions.items():
             tools=(await session.list_tools()).tools

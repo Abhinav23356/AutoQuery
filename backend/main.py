@@ -10,6 +10,7 @@ from agent.mcp_client import MCPConnections
 from agent.orchestrator import Agent
 from datasets import UploadedDataset, MAX_UPLOAD_BYTES
 
+# --- Logging and application configuration ---
 logging.basicConfig(level=os.getenv("LOG_LEVEL","INFO"),format='%(asctime)s %(levelname)s %(name)s %(message)s')
 # AutoGen logs full prompts and tool results at INFO; keep user data out of logs.
 logging.getLogger("autogen_core.events").setLevel(logging.WARNING)
@@ -21,6 +22,8 @@ password_hash=PasswordHash.recommended()
 SESSION_COOKIE="dd_session"
 SESSION_DAYS=14
 
+
+# --- Database access and session helpers ---
 def app_db(): return psycopg.connect(os.environ["APP_DATABASE_URL"])
 def _secure_cookie(): return os.getenv("SESSION_COOKIE_SECURE","false").lower() in {"1","true","yes"}
 def _token_hash(token:str): return hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -72,9 +75,13 @@ def persist_execution(execution,create=False):
    cur.execute("""UPDATE executions SET events=%s::jsonb,status=%s,error=%s,duration_ms=%s
      WHERE id=%s AND owner_id=%s""",(json.dumps(execution["events"]),execution["status"],execution.get("error"),execution.get("duration_ms"),execution["id"],execution["owner_id"]))
 
+
+# --- API request models ---
 class ChatRequest(BaseModel): question:str=Field(min_length=1,max_length=4000); conversation_id:str|None=None
 class Credentials(BaseModel): email:EmailStr; password:str=Field(min_length=12,max_length=128)
 
+
+# --- Account registration and authentication routes ---
 @app.post("/api/auth/register",status_code=201)
 def register(payload:Credentials,response:Response):
  email=str(payload.email).strip().lower(); uid=str(uuid.uuid4()); encoded=password_hash.hash(payload.password)
@@ -114,6 +121,8 @@ def logout(request:Request,response:Response):
  response.delete_cookie(SESSION_COOKIE,path="/api",httponly=True,secure=_secure_cookie(),samesite="lax")
  return {"ok":True}
 
+
+# --- Application startup and health check ---
 @app.on_event("startup")
 def startup():
  global agent
@@ -122,6 +131,8 @@ def startup():
 @app.get("/api/health")
 def health(): return {"status":"ok","agent_ready":agent is not None,"mcp_servers":["chart-mcp-server"]}
 
+
+# --- Conversation and execution routes ---
 @app.get("/api/conversations")
 def list_conversations(user:dict=Depends(current_user)):
  with app_db() as conn, conn.cursor() as cur:
@@ -153,6 +164,8 @@ def get_execution(execution_id:str,user:dict=Depends(current_user)):
  if not row: raise HTTPException(404,"Execution not found.")
  return {"id":row[0],"conversation_id":row[1],"owner_id":row[2],"events":row[3],"status":row[4],"error":row[5],"duration_ms":row[6]}
 
+
+# --- Dataset upload and management routes ---
 @app.post("/api/conversations/{conversation_id}/dataset")
 async def upload_dataset(conversation_id:str,file:UploadFile=File(...),user:dict=Depends(current_user)):
  if not file.filename or not file.filename.lower().endswith(".csv"):
@@ -197,6 +210,8 @@ def remove_dataset(conversation_id:str,user:dict=Depends(current_user)):
   removed=cur.rowcount>0
  return {"removed":removed}
 
+
+# --- Chat analysis and execution lifecycle ---
 @app.post("/api/chat")
 async def chat(req:ChatRequest,user:dict=Depends(current_user)):
  if req.conversation_id:
@@ -223,7 +238,7 @@ async def chat(req:ChatRequest,user:dict=Depends(current_user)):
    persist_conversation(convo)
    execution.update(status="completed",duration_ms=round((time.monotonic()-started)*1000)); persist_execution(execution)
    return {"conversation_id":cid,"execution_id":eid,"answer":answer,"charts":[],"events":events}
-  if agent is None: raise HTTPException(503,"Add GEMINI_API_KEY from Google AI Studio to Vercel environment variables to enable the agent.")
+  if agent is None: raise HTTPException(503,"Set GEMINI_API_KEY from Google AI Studio in the backend environment to enable the agent.")
   async with MCPConnections() as connections: result=await agent.run(req.question,history,connections,event,dataset)
   convo["messages"].append({"role":"assistant","content":result["answer"],"charts":result["charts"],"query_results":result["query_results"],"execution_id":eid}); convo["updated_at"]=datetime.now(timezone.utc).isoformat()
   persist_conversation(convo)

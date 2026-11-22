@@ -1,4 +1,6 @@
+# --- Local development services ---
 services:
+  # PostgreSQL database and health check
   postgres:
     image: postgres:16-alpine
     environment:
@@ -14,6 +16,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  # One-time application role and schema initialization
   init-app-db:
     build: ./backend
     command: python /init_app_db.py
@@ -28,6 +32,8 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
+
+  # FastAPI backend
   api:
     build: ./backend
     env_file: .env
@@ -40,11 +46,15 @@ services:
       postgres: { condition: service_healthy }
       init-app-db: { condition: service_completed_successfully }
     ports: ["8000:8000"]
+
+  # Vite frontend
   web:
     build: ./frontend
     environment:
       VITE_API_URL: http://localhost:8000
     depends_on: [api]
     ports: ["5173:5173"]
+
+# --- Persistent local database volume ---
 volumes:
   pgdata:

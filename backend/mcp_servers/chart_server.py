@@ -2,8 +2,12 @@
 from typing import Any
 from mcp.server.fastmcp import FastMCP
 from agent.chart_guard import chart_config
+
+# --- Create the chart MCP server ---
 mcp=FastMCP("chart-mcp-server")
 
+
+# --- Chart generation tools ---
 @mcp.tool()
 def generate_bar_chart(data:list[dict[str,Any]],title:str,x_axis:str,y_axis:str,series:list[str]|None=None)->dict:
     """Return a Recharts bar configuration. Set series to every numeric column to compare multiple categories (for example regions) across the x axis."""
@@ -16,4 +20,6 @@ def generate_line_chart(data:list[dict[str,Any]],title:str,x_axis:str,y_axis:str
 def generate_pie_chart(data:list[dict[str,Any]],title:str,label_column:str,value_column:str)->dict:
     """Validate data and return Recharts pie chart configuration."""
     return chart_config("pie",data,title,label_column,value_column)
+
+# --- Start the stdio MCP server ---
 if __name__=="__main__": mcp.run(transport="stdio")

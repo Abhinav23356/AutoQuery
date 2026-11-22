@@ -6,11 +6,15 @@ import re
 import sqlite3
 from dataclasses import dataclass
 
+
+# --- Upload limits and dataset table name ---
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
 MAX_ROWS = 20_000
 TABLE = "uploaded_data"
 
 
+
+# --- Uploaded dataset representation ---
 @dataclass
 class UploadedDataset:
     name: str
@@ -18,6 +22,7 @@ class UploadedDataset:
     row_count: int
     connection: sqlite3.Connection
 
+    # --- Validate CSV input and create an isolated SQLite table ---
     @classmethod
     def from_csv(cls, filename: str, content: bytes):
         if len(content) > MAX_UPLOAD_BYTES:
@@ -62,6 +67,7 @@ class UploadedDataset:
         conn.commit()
         return cls(filename or "uploaded.csv", columns, row_count, conn)
 
+    # --- Execute read-only queries against this upload ---
     def query(self, sql: str):
         statement = sql.strip()
         if not re.match(r"(?is)^\s*(select|with)\b", statement):
@@ -86,6 +92,7 @@ class UploadedDataset:
         finally:
             self.connection.set_authorizer(None)
 
+    # --- Describe this dataset as an agent tool ---
     def tool(self):
         schema = ", ".join(f'"{c}"' for c in self.columns)
         return {"type": "function", "function": {

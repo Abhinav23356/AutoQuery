@@ -56,18 +56,3 @@ docker compose up postgres init-app-db
 ```
 
 Then install `backend/requirements.txt`, set `APP_DATABASE_URL` to the app database role, set `GEMINI_API_KEY`, run `uvicorn main:app --reload` from `backend/`, and serve the frontend with `cd frontend && npm install && npm run dev`.
-
-## Deploy to Vercel Services
-
-The root `vercel.json` routes one Vercel deployment to the Vite frontend and FastAPI API on a shared domain. In Vercel, import the repository from its root and choose **Services** as the project framework. Vercel Services is currently in beta.
-
-Vercel does not run this project's Compose PostgreSQL service. Create a managed PostgreSQL database first. Install the backend requirements locally, then run the schema initializer once using the provider's admin connection string and a strong app-role password:
-
-```sh
-python3 -m pip install -r backend/requirements.txt
-DATABASE_ADMIN_URL='postgresql://<admin-user>:<password>@<host>/<database>?sslmode=require' APP_PASSWORD='<strong-app-role-password>' python3 db/init_storage.py
-```
-
-Keep the admin connection string local; do not add it to the deployed app. Add `APP_DATABASE_URL` for the `detective_app` database role, `GEMINI_API_KEY`, `GEMINI_MODEL`, `MAX_UPLOAD_BYTES=4000000`, and `SESSION_COOKIE_SECURE=true` to Vercel's project environment variables. `APP_PASSWORD` is only needed locally while running the initializer; embed or URL-encode it in the app-role connection string. The browser API URL defaults to the current deployment origin; it can be overridden with `VITE_API_URL` if needed. Deploy after the database migration and environment variables are ready.
-
-Conversations and execution traces are read from PostgreSQL per request so they survive Vercel function cold starts. The SQLite query database is rebuilt from the selected chat's stored CSV for each analysis request. The MCP chart server is started as a subprocess; confirm this works in a Vercel preview deployment before treating the setup as production-ready. Vercel Functions have a maximum request body size of 4.5 MB and a maximum request duration, so this setup caps CSVs at 4,000,000 bytes and a slow Gemini response can time out.

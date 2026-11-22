@@ -4,10 +4,14 @@ import os
 import psycopg
 from psycopg import sql
 
+
+# --- Load the database administrator connection ---
 app_password = os.getenv("APP_PASSWORD", "app_dev")
 database_url = os.getenv("DATABASE_ADMIN_URL")
 connection = psycopg.connect(database_url) if database_url else psycopg.connect()
 
+
+# --- Create application tables and indexes ---
 with connection as conn:
     with conn.cursor() as cur:
         cur.execute("""CREATE TABLE IF NOT EXISTS users (
@@ -42,6 +46,7 @@ with connection as conn:
           duration_ms INTEGER,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
         cur.execute("CREATE INDEX IF NOT EXISTS executions_owner_created_idx ON executions(owner_id, created_at DESC)")
+        # --- Grant the application role its least-privilege access ---
         cur.execute("GRANT USAGE ON SCHEMA public TO detective_app")
         cur.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON conversations, uploaded_datasets, users, sessions, executions TO detective_app")
         cur.execute("SELECT current_database()")
